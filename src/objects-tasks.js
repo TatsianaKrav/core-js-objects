@@ -209,7 +209,7 @@ function Rectangle(width, height) {
   this.width = width;
   this.height = height;
 
-  Rectangle.prototype.getArea = function () {
+  Rectangle.prototype.getArea = function getArea() {
     return this.width * this.height;
   };
 }
@@ -273,7 +273,7 @@ function fromJSON(proto, json) {
  *    ]
  */
 function sortCitiesArray(arr) {
-  arr.sort(function (a, b) {
+  arr.sort(function sort(a, b) {
     if (a.country > b.country) {
       return 1;
     }

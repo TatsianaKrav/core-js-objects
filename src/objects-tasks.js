@@ -229,8 +229,9 @@ function getJSON(obj) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const obj = JSON.parse(json);
+  return Object.setPrototypeOf(obj, proto);
 }
 
 /**
@@ -259,8 +260,30 @@ function fromJSON(/* proto, json */) {
  *      { country: 'Russia',  city: 'Saint Petersburg' }
  *    ]
  */
-function sortCitiesArray(/* arr */) {
-  throw new Error('Not implemented');
+function sortCitiesArray(arr) {
+  function sort(a, b) {
+    if (a.country > b.country) {
+      return 1;
+    }
+    if (a.country < b.country) {
+      return -1;
+    }
+
+    if (a.country === b.country) {
+      if (a.city > b.city) {
+        return 1;
+      }
+      if (a.city < b.city) {
+        return -1;
+      }
+
+      return 0;
+    }
+
+    return 0;
+  }
+
+  return arr.sort(sort);
 }
 
 /**
@@ -293,8 +316,15 @@ function sortCitiesArray(/* arr */) {
  *    "Poland" => ["Lodz"]
  *   }
  */
-function group(/* array, keySelector, valueSelector */) {
-  throw new Error('Not implemented');
+function group(array, keySelector, valueSelector) {
+  const map = array.reduce((acc, obj) => {
+    const key = keySelector(obj);
+    acc[key] = acc[key] ? acc[key] : [];
+    acc[key].push(valueSelector(obj));
+    return acc;
+  }, {});
+
+  return Object.entries(map);
 }
 
 /**
@@ -352,32 +382,89 @@ function group(/* array, keySelector, valueSelector */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  strValue: '',
+  hasElement: false,
+  hasPseudoElem: false,
+  hasId: false,
+  order: 0,
+
+  writeValue(order, elem, value, existingSelector) {
+    this.checkOrder(order);
+    this.checkSelector(elem);
+
+    const obj = Object.create(this);
+    if (existingSelector) {
+      obj[existingSelector] = true;
+    }
+    obj.strValue += value;
+    obj.order = order;
+    return obj;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  checkSelector(elem) {
+    if (
+      (elem === 'element' && this.hasElement) ||
+      (elem === 'pseudoElement' && this.hasPseudoElem) ||
+      (elem === 'id' && this.hasId)
+    ) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  checkOrder(selectorOrder) {
+    if (this.order > selectorOrder) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    const objWithValue = this.writeValue(1, 'element', value, 'hasElement');
+    return objWithValue;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    const objWithValue = this.writeValue(2, 'id', `#${value}`, 'hasId');
+    return objWithValue;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    const objWithValue = this.writeValue(3, 'class', `.${value}`);
+    return objWithValue;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    const objWithValue = this.writeValue(4, 'attr', `[${value}]`);
+    return objWithValue;
+  },
+
+  pseudoClass(value) {
+    const objWithValue = this.writeValue(5, 'pseudoClass', `:${value}`);
+    return objWithValue;
+  },
+
+  pseudoElement(value) {
+    const objWithValue = this.writeValue(
+      6,
+      'pseudoElement',
+      `::${value}`,
+      'hasPseudoElem'
+    );
+    return objWithValue;
+  },
+
+  stringify() {
+    const toStrVal = this.strValue;
+    this.strValue = '';
+    return toStrVal;
+  },
+
+  combine(selector1, combinator, selector2) {
+    this.strValue = `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+    return this;
   },
 };
 
